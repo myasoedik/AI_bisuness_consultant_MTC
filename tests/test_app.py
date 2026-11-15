@@ -13,11 +13,14 @@ from energytool.core import Consultant, MATERIALS, Search, parse_question
 from energytool.server import make_server
 from energytool.storage import Store
 
+TEST_KB = Path(__file__).parent / 'fixtures'
+HAS_CASE = (MATERIALS / 'knowledge-base').is_dir()
+
 
 class RetrievalTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.search = Search(MATERIALS / "knowledge-base")
+        cls.search = Search(TEST_KB)
 
     def test_full_document_index(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -25,13 +28,15 @@ class RetrievalTests(unittest.TestCase):
             matches = Search(directory).search("фотораспознавание")
             self.assertIn("уникального", matches[0][0].text)
 
+    @unittest.skipUnless(HAS_CASE, 'Optional case files are not distributed with the project')
     def test_relevant_products(self):
+        search = Search(MATERIALS / 'knowledge-base')
         for query, document in [("Солнечная станция на крыше", "23-solar.md"),
                                 ("Распознавание показаний по фотографии", "25-meter-reading.md"),
                                 ("Поиск коммерческих потерь", "24-losses.md"),
                                 ("Выход на оптовый рынок", "21-orem.md")]:
             with self.subTest(query=query):
-                self.assertTrue(any(c.document.endswith(document) for c, _ in self.search.search(query)))
+                self.assertTrue(any(c.document.endswith(document) for c, _ in search.search(query)))
 
     def test_dialogue_parser(self):
         messages = parse_question("Пользователь: Первый вопрос\nАссистент: Уточните\nПользователь: Последний вопрос")
@@ -39,7 +44,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(messages[-1]["content"], "Последний вопрос")
 
     def test_missing_api_is_explicit(self):
-        bot = Consultant()
+        bot = Consultant(TEST_KB)
         bot.key = ""
         result = bot.answer([{"role": "user", "content": "Солнечные панели"}])
         self.assertEqual(result["mode"], "retrieval")
@@ -47,7 +52,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertTrue(result["sources"])
 
     def test_model_failure_is_reported(self):
-        bot = Consultant()
+        bot = Consultant(TEST_KB)
         bot.key, bot.base = "test", "http://unused"
         with patch.object(bot, "complete", side_effect=TimeoutError):
             result = bot.answer([{"role": "user", "content": "Солнечные панели"}])
@@ -55,7 +60,7 @@ class RetrievalTests(unittest.TestCase):
 
     def test_case_materials_are_not_sent_to_openrouter_by_default(self):
         with patch.dict('os.environ', {'DEMO_MODE':'0','ALLOW_CASE_EXTERNAL_API':'0'}):
-            bot = Consultant()
+            bot = Consultant(TEST_KB)
             bot.key,bot.base = 'test','https://openrouter.ai/api/v1'
             with patch.object(bot,'complete') as complete:
                 result = bot.answer([{'role':'user','content':'Солнечные панели'}])
@@ -63,7 +68,7 @@ class RetrievalTests(unittest.TestCase):
                 self.assertEqual(result['mode'],'retrieval')
 
     def test_early_client_facts_survive_long_dialogue(self):
-        bot=Consultant()
+        bot=Consultant(TEST_KB)
         bot.key,bot.base='test','http://unused'
         history=[{'role':'user','content':'Объект в Туле, 840 кВт.'}]
         history += [{'role':'assistant' if i%2==0 else 'user','content':'Обсудим учёт'} for i in range(24)]
@@ -72,8 +77,36 @@ class RetrievalTests(unittest.TestCase):
             bot.answer(history)
         self.assertIn('840',json.dumps(complete.call_args.args[0],ensure_ascii=False))
 
+    def test_middle_of_long_history_is_preserved(self):
+        bot = Consultant(TEST_KB)
+        bot.key, bot.base = 'test', 'http://unused'
+        history = [{'role':'user','content':'Учёт ' + 'данные '*800} for _ in range(12)]
+        history[5]['content'] = 'Учёт: уникальный объект 731 в середине разговора'
+        history += [{'role':'user','content':'Учёт расходов'} for _ in range(25)]
+        with patch.object(bot,'complete',return_value='Ответ') as complete:
+            bot.answer(history)
+        self.assertEqual(complete.call_args.args[0][2:], history)
+
+    def test_context_limit_is_explicit_without_silent_truncation(self):
+        bot = Consultant(TEST_KB)
+        bot.key, bot.base = 'test', 'http://unused'
+        with patch.dict('os.environ', {'MAX_CONTEXT_CHARS':'500'}), patch.object(bot,'complete') as complete:
+            result = bot.answer([{'role':'user','content':'Солнечные панели'}])
+        complete.assert_not_called()
+        self.assertEqual(result['error'],'context_limit')
+
+    def test_missing_evidence_offers_specialist_without_calling_model(self):
+        bot = Consultant(TEST_KB)
+        for key in ('', 'test'):
+            bot.key, bot.base = key, 'http://unused'
+            with patch.object(bot.searcher,'search',return_value=[]), patch.object(bot,'complete') as complete:
+                result = bot.answer([{'role':'user','content':'Вопрос за пределами базы'}])
+            complete.assert_not_called()
+            self.assertEqual(result['mode'],'refusal')
+            self.assertIn('специалист',result['answer'])
+
     def test_truncated_model_output_is_not_shown_as_complete(self):
-        bot = Consultant()
+        bot = Consultant(TEST_KB)
         bot.key, bot.base = 'test', 'http://unused'
         response = io.BytesIO(json.dumps({'choices': [{'finish_reason': 'length',
                                                       'message': {'content': 'Незаконченное предложение'}}]}).encode())
@@ -81,6 +114,7 @@ class RetrievalTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 bot.complete([{'role': 'user', 'content': 'Тест'}])
 
+    @unittest.skipUnless(HAS_CASE, 'Optional case files are not distributed with the project')
     def test_short_followup_retains_product_context(self):
         bot = Consultant()
         bot.key = ""
@@ -103,7 +137,7 @@ class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.store = Store(Path(self.temp.name) / "db.sqlite3")
-        self.bot = Consultant()
+        self.bot = Consultant(TEST_KB)
         self.bot.key = ""
         self.server = make_server("127.0.0.1", 0, self.bot, self.store)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -221,6 +255,22 @@ class ApiTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(urllib.error.HTTPError) as error:
                 self.request(path)
             self.assertEqual(error.exception.code, status)
+
+    def test_all_sessions_remain_accessible_after_200(self):
+        ids = [self.store.create() for _ in range(205)]
+        self.store.add(ids[0], 'user', 'Самый ранний диалог без заявки')
+        visible = []
+        for offset in range(0,250,50):
+            visible += self.request('/api/sessions?limit=50&offset='+str(offset))
+        self.assertEqual({s['id'] for s in visible}, set(ids))
+        self.assertEqual(len(visible),205)
+        self.assertEqual(self.request('/api/sessions/'+ids[0])['messages'][0]['content'], 'Самый ранний диалог без заявки')
+
+    def test_invalid_session_pagination(self):
+        for path in ('/api/sessions?limit=0','/api/sessions?limit=101','/api/sessions?offset=-1','/api/sessions?limit=bad'):
+            with self.subTest(path=path), self.assertRaises(urllib.error.HTTPError) as error:
+                self.request(path)
+            self.assertEqual(error.exception.code,400)
 
     def test_manager_assets_are_served(self):
         for path, mime in [('/manager', 'text/html'), ('/manager.js', 'text/javascript'),

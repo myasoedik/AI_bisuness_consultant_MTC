@@ -38,7 +38,15 @@ def make_server(host="127.0.0.1", port=8000, consultant=None, store=None):
                                        "external_blocked": consultant.external_blocked,
                                        "chunks": len(consultant.searcher.chunks), "documents": len({c.document for c in consultant.searcher.chunks})})
             if path == "/api/sessions":
-                return self.send(200, store.list_sessions())
+                params = parse_qs(urlparse(self.path).query)
+                try:
+                    limit = int(params.get('limit', ['50'])[0])
+                    offset = int(params.get('offset', ['0'])[0])
+                    if not 1 <= limit <= 100 or offset < 0:
+                        raise ValueError()
+                except ValueError:
+                    return self.send(400, {'error': 'Некорректные параметры истории'})
+                return self.send(200, store.list_sessions(limit, offset))
             if path == "/api/leads":
                 params = parse_qs(urlparse(self.path).query)
                 try:

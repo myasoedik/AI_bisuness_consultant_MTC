@@ -59,9 +59,10 @@ class Store:
         with self.connect() as db:
             db.execute("UPDATE sessions SET closed=1 WHERE id=?", (sid,))
 
-    def list_sessions(self):
+    def list_sessions(self, limit=50, offset=0):
         with self.connect() as db:
-            return [dict(row) for row in db.execute("SELECT * FROM sessions ORDER BY created_at DESC LIMIT 200")]
+            return [dict(row) for row in db.execute(
+                "SELECT * FROM sessions ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?", (limit, offset))]
 
     def messages(self, sid):
         with self.connect() as db:

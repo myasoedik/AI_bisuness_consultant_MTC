@@ -10,4 +10,5 @@ output/
 submission.csv
 drive-download-*/
 *.pdf
+!docs/presentation.pdf
 .venv/

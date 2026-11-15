@@ -33,14 +33,15 @@ class SubmissionTests(unittest.TestCase):
                     archive.writestr('synthetic.md','# Учебный продукт\nТестовый учёт складов.')
                 with (p/'questions.csv').open('w',encoding='utf-8-sig',newline='') as f:
                     writer=csv.writer(f);writer.writerow(['id','question'])
-                    writer.writerows([['001','Пользователь: Уникальный контекст первого кейса\nАссистент: Уточните\nПользователь: Проверяем учёт'],['002','Независимый второй вопрос']])
+                    writer.writerows([['001','Пользователь: Уникальный контекст первого кейса\nАссистент: Уточните\nПользователь: Проверяем учёт'],['002','Независимый вопрос про учёт'],['003','Астрология']])
                 env={**os.environ,'DATA_DIR':str(p),'LLM_BASE_URL':f'http://127.0.0.1:{api.server_port}',
                      'LLM_API_KEY':'test-only','LLM_MODEL':'test-only','MAX_WORKERS':'1','DEMO_MODE':'1'}
                 result=subprocess.run([sys.executable,str(ROOT/'solution.py')],cwd=p,env=env,capture_output=True,timeout=15)
                 self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
                 with (p/'submission.csv').open(encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
-                self.assertEqual([r['id'] for r in rows],['001','002'])
+                self.assertEqual([r['id'] for r in rows],['001','002','003'])
                 self.assertNotIn('\n',rows[0]['answer'])
+                self.assertIn('специалист', rows[2]['answer'])
                 self.assertEqual(len(calls),2)
                 self.assertNotIn('Уникальный контекст',json.dumps(calls[1],ensure_ascii=False))
                 self.assertIn('МТС EnergyTool',calls[0][0]['content'])

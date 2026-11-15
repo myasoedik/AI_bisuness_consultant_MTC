@@ -2,6 +2,10 @@ const $ = (s) => document.querySelector(s);
 let activeSession = null, viewedSession = null, busy = false, sources = null, demoMode = false;
 let pendingChat = null, pendingLead = null, waitingTimer = null;
 let sessionLoadVersion = 0, creatingSession = false;
+let historyOffset = 0, historyVersion = 0;
+const historyMore = document.createElement('button');
+historyMore.className = 'secondary'; historyMore.textContent = 'Показать ещё'; historyMore.hidden = true;
+$('#history').after(historyMore);
 const request = async (path, data) => {
   const response = await fetch(path, data === undefined ? {} : {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)});
   const result = await response.json();
@@ -27,7 +31,7 @@ function showDebug(metadata) {
   $('#debug-toggle').setAttribute('aria-pressed','true');
   const container = $('#debug-content'); container.replaceChildren();
   const status = document.createElement('p');
-  status.textContent = `${metadata.elapsed_ms} мс · ${metadata.mode === 'llm' ? 'Ответ LLM' : metadata.mode === 'retrieval' ? 'Поиск без LLM' : 'Ошибка API'}`;
+  status.textContent = `${metadata.elapsed_ms} мс · ${metadata.mode === 'llm' ? 'Ответ LLM' : metadata.mode === 'retrieval' ? 'Поиск без LLM' : metadata.mode === 'refusal' ? 'Недостаточно сведений' : 'Ответ недоступен'}`;
   container.append(status);
   for (const source of metadata.sources || []) {
     const details = document.createElement('details'), title = document.createElement('summary'), text = document.createElement('pre');
@@ -60,15 +64,26 @@ function addMessage(role, content, metadata = {}, leadId = null) {
   $('#conversation').scrollTop = $('#conversation').scrollHeight;
   return article;
 }
-async function refreshHistory() {
-  const list = await request('/api/sessions'); $('#history').replaceChildren();
+async function refreshHistory(append = false) {
+  const version = ++historyVersion;
+  const offset = append ? historyOffset : 0;
+  historyMore.disabled = true;
+  let list;
+  try {list = await request(`/api/sessions?limit=50&offset=${offset}`);}
+  finally {if (version === historyVersion) historyMore.disabled = false;}
+  if (version !== historyVersion) return;
+  if (!append) $('#history').replaceChildren();
   for (const session of list) {
     const button = document.createElement('button'); button.textContent = session.title; button.title = session.title;
+    button.dataset.session = session.id;
     button.className = session.id === viewedSession ? 'active' : '';
     button.onclick = () => {if (!busy && !creatingSession) openSession(session.id).catch(showError);};
     $('#history').append(button);
   }
+  historyOffset = offset + list.length;
+  historyMore.hidden = list.length < 50;
 }
+historyMore.onclick = () => refreshHistory(true).catch(showError);
 function showError(error) { $('#error').textContent = error.message; }
 async function openSession(id) {
   const version = ++sessionLoadVersion;
@@ -84,7 +99,7 @@ async function openSession(id) {
   $('#composer').hidden = archived; $('#lead-open').hidden = archived;
   $('#session-label').textContent = archived ? 'История консультации' : 'Текущая консультация';
   $('#message').disabled = archived;
-  await refreshHistory();
+  $('#history').querySelectorAll('[data-session]').forEach(button => button.classList.toggle('active', button.dataset.session === id));
 }
 async function newSession() {
   if (busy || creatingSession) return;
@@ -95,6 +110,7 @@ async function newSession() {
     pendingChat = null; pendingLead = null;
     $('#message').value = ''; $('#error').textContent = '';
     await openSession(activeSession);
+    await refreshHistory();
   } finally {creatingSession=false; $('#new-chat').disabled=busy;}
 }
 async function sendMessage(text) {
