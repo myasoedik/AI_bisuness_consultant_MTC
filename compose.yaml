@@ -1,0 +1,24 @@
+services:
+  consultant:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-qwen/qwen3.8-27b}
+      MAX_TOKENS: ${MAX_TOKENS:-1200}
+      TEMPERATURE: ${TEMPERATURE:-0}
+      ALLOW_CASE_EXTERNAL_API: ${ALLOW_CASE_EXTERNAL_API:-0}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status',timeout=5)"]
+      interval: 30s
+      timeout: 6s
+      start_period: 10s
+      retries: 3
+    volumes:
+      - ./drive-download-20261114T123852Z-1-001/knowledge-base:/knowledge-base:ro
+      - consultant-data:/app/data
+    restart: unless-stopped
+volumes:
+  consultant-data:

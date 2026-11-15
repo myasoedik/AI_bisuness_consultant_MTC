@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Заявки менеджера — EnergyTool</title>
+  <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/manager.css">
+  <script defer src="/manager.js"></script>
+</head>
+<body class="manager-page">
+<header class="manager-header">
+  <div class="manager-heading"><span class="brand-icon">мтс</span><div><span class="eyebrow">ENERGYTOOL · ЭКРАН МЕНЕДЖЕРА</span><h1>Заявки на консультацию</h1></div></div>
+  <a href="/" class="back-chat">Открыть чат ↗</a>
+</header>
+<div id="manager-mode" class="manager-notice">Заявки сохраняются локально. Отправки в CRM или оператору нет.</div>
+<main class="manager-workspace">
+  <section class="inbox" aria-label="Список заявок">
+    <div class="inbox-heading"><h2>Входящие <span id="total-count">—</span></h2><button id="refresh" class="subtle" type="button">Обновить</button></div>
+    <label for="lead-search" class="search-label">Поиск по компании, имени или телефону</label>
+    <input id="lead-search" type="search" maxlength="200" placeholder="Например, Тестовый склад" autocomplete="off">
+    <div id="list-status" class="list-status" role="status">Загружаем заявки…</div>
+    <div id="lead-list" class="lead-list"></div>
+    <div id="list-empty" class="empty-list" hidden><span>↗</span><h3>Пока нет заявок</h3><p>Оставьте тестовую заявку в чате — она появится здесь автоматически.</p></div>
+    <div class="pagination" id="pagination" hidden><button id="previous" class="subtle">← Назад</button><span id="page-label"></span><button id="next" class="subtle">Далее →</button></div>
+    <p class="auto-refresh">Список обновляется каждые 15 секунд</p>
+  </section>
+  <section class="lead-panel" aria-label="Карточка заявки" aria-busy="false">
+    <div id="selection-empty" class="selection-empty"><span>▤</span><h2>Всё для первого разговора</h2><p>Выберите заявку слева: здесь появятся контакты, резюме консультации и переписка клиента.</p></div>
+    <div id="detail-error" class="manager-error" role="alert" hidden></div>
+    <article id="lead-detail" hidden>
+      <div class="detail-heading"><div><span class="eyebrow">ЗАЯВКА ИЗ ЧАТА</span><h2 id="company"></h2></div><span class="saved-badge">Сохранена локально</span></div>
+      <p id="lead-date" class="lead-date"></p>
+      <dl class="contact-grid"><div><dt>Контактное лицо</dt><dd id="contact-name"></dd></div><div><dt>Телефон</dt><dd id="contact-phone"></dd></div></dl>
+      <nav class="detail-tabs" aria-label="Содержание заявки"><a href="#summary-section">Резюме</a><a href="#conversation-section">История диалога <span id="message-count"></span> ↓</a></nav>
+      <section id="summary-section" class="detail-section"><h3>Резюме для менеджера</h3><p class="section-hint">Сохранено в момент оформления заявки.</p><div id="lead-summary" class="summary-text"></div></section>
+      <section id="conversation-section" class="detail-section"><div class="conversation-title"><h3>История диалога</h3><span id="session-state"></span></div><p class="section-hint">Все сообщения этой сессии на момент открытия карточки.</p><div id="lead-messages"></div></section>
+    </article>
+  </section>
+</main>
+<div id="manager-error" class="manager-error global-error" role="alert" hidden></div>
+</body></html>

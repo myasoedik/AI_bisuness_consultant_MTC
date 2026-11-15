@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EnergyTool — консультант для бизнеса</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/manager.css"><script defer src="/app.js"></script></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="EnergyTool, главная"><span class="brand-icon">мтс</span><span>EnergyTool<small>Энергия вашего бизнеса</small></span></a>
+  <button id="new-chat" class="new-chat">＋ Новый диалог</button>
+  <div class="side-label">ИСТОРИЯ КОНСУЛЬТАЦИЙ</div><nav id="history" aria-label="История диалогов"></nav>
+  <a class="manager-link" href="/manager" target="_blank" rel="noopener">Заявки менеджера ↗</a>
+  <div class="sidebar-bottom"><span class="online-dot"></span> Локальный прототип<br><small>История остаётся на этом устройстве</small></div>
+</aside>
+<main>
+  <header><div><span class="eyebrow">ДЛЯ БИЗНЕСА</span><h1>Ваш консультант по энергетике</h1></div><button id="debug-toggle" class="subtle" aria-pressed="false">Источники и время</button></header>
+  <div id="connection" class="connection" role="status">Проверяем подключение…</div>
+  <section id="conversation" aria-label="Диалог" aria-live="polite">
+    <div id="welcome" class="welcome">
+      <div class="energy-symbol">↗</div><span class="eyebrow">МЕНЬШЕ ЗАТРАТ. БОЛЬШЕ ЯСНОСТИ.</span>
+      <h2>Найдём решение<br>для вашего бизнеса</h2>
+      <p>Расскажите о вашем объекте и задаче.<br>Разберёмся в учёте, расходах и возможностях EnergyTool.</p>
+      <div class="suggestions">
+        <button data-question="У нас производство, выросли счета за электроэнергию. С чего начать поиск причины?"><span>↘</span><strong>Снизить расходы</strong><small>Разобраться, почему вырос счёт</small></button>
+        <button data-question="У нас несколько складов. Хотим автоматически собирать показания счётчиков в одном кабинете."><span>▥</span><strong>Наладить учёт</strong><small>Видеть потребление по объектам</small></button>
+        <button data-question="Хотим установить солнечные панели на крыше предприятия. Что нужно для предварительной оценки?"><span>☀</span><strong>Своя генерация</strong><small>Оценить солнечную станцию</small></button>
+        <button data-question="Мы электросетевая организация. Какие данные нужны, чтобы начать искать коммерческие потери?"><span>⌁</span><strong>Найти потери</strong><small>Определить точки для проверки</small></button>
+      </div>
+    </div>
+    <div id="messages"></div>
+  </section>
+  <div id="archive-notice" class="archive-notice" hidden>Архив диалога · Только просмотр. Для консультации начните новый диалог.</div>
+  <footer>
+    <div class="compose-meta"><span id="session-label">Новая консультация</span><button id="lead-open" class="text-button">Оставить заявку ↗</button></div>
+    <form id="composer"><label class="sr-only" for="message">Ваш вопрос</label><textarea id="message" rows="2" maxlength="6000" placeholder="Например: у нас три склада, хотим сократить расходы на электричество…" required></textarea><button id="send" type="submit" aria-label="Отправить сообщение">↑</button></form>
+    <div id="reply-status" class="footnote" role="status" hidden></div>
+    <div class="footnote">Ответы по базе знаний EnergyTool. Условия конкретного проекта уточняет специалист.</div>
+    <div id="error" role="alert"></div>
+  </footer>
+</main>
+<aside id="debug" class="debug-panel" hidden><h2>Как получен ответ</h2><p>Выберите «Источники» под сообщением.</p><div id="debug-content"></div></aside>
+<dialog id="lead-dialog"><form id="lead-form"><button type="button" id="lead-close" class="dialog-close" aria-label="Закрыть">×</button><span class="eyebrow">СЛЕДУЮЩИЙ ШАГ</span><h2>Обсудить задачу со специалистом</h2><p>Сохраним заявку и резюме разговора внутри прототипа. Данные никуда не отправляются.</p><label>ФИО<input name="name" maxlength="200" placeholder="Иван Тестовый" required></label><label>Телефон<input name="phone" type="tel" maxlength="30" placeholder="+7 000 000-00-00" required></label><label>Компания<input name="company" maxlength="200" placeholder="ООО «Тестовая компания»" required></label><label class="checkbox"><input name="test_data" type="checkbox" required> Использую только выдуманные тестовые данные</label><button class="primary" type="submit">Сохранить заявку</button><div id="lead-error" role="alert"></div></form></dialog>
+</body></html>

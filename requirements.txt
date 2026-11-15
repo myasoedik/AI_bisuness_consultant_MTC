@@ -1,0 +1,2 @@
+# Runtime: Python 3.13. This initial implementation uses only the standard library.
+# No third-party runtime dependencies.

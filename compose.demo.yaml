@@ -1,0 +1,13 @@
+# Local demo with fictional data only. Merge with compose.yaml.
+services:
+  consultant:
+    environment:
+      DEMO_MODE: "1"
+      MAX_TOKENS: "4096"
+      LLM_REASONING_OFF: "1"
+      DB_PATH: /app/data/demo.sqlite3
+    volumes:
+      - ./demo-knowledge-base:/knowledge-base:ro
+      - demo-data:/app/data
+volumes:
+  demo-data:

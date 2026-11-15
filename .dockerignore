@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+data
+tmp
+output
+__pycache__
+**/__pycache__
+.pytest_cache
+.venv
+drive-download-*
+*.pdf
+tests
